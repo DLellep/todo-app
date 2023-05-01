@@ -19,10 +19,30 @@
             margin-bottom: 10px;
         }
 
+        .task-buttons {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+
+        }
+
+        .taskbtn {
+            margin-left: 2px;
+        }
+
         .task {
             border: solid black 1px;
             margin: 5px;
+
+
         }
+        .createTaskButton
+            {
+            display: flex;
+            justify-content: flex-end;
+            margin-right: 35px;
+            }
     </style>
 </head>
 <body>
@@ -40,8 +60,12 @@
                         SignIn
                     </button>
                     <button type="button" class="btn btn-danger" @click="logout()" v-if="sessionToken">Logout</button>
+                    <div class="createTaskButton">
+                    <button type="button" class="btn btn-primary" @click="showCreateTaskModal()" v-if="sessionToken">
+                        Create task
+                        </button>
+                    </div>
                 </div>
-            </div>
         </div>
         <div class="row gy-5 g-lg-3">
             <div class="col">
@@ -54,11 +78,15 @@
                             <p>{{ task.dueDate }}</p>
                             <p>{{ task.completed ? 'Completed' : 'Not completed' }}</p>
                         </div>
+                        <div class="task-buttons">
+                            <button type="button" class="btn taskbtn btn-success" @click="completeTask(task.id)">Complete</button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+    <!-- Sign in modal pop up-->
     <div id="signInModal" class="modal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -82,6 +110,33 @@
         </div>
     </div>
 </div>
+<!-- Create task modal pop up-->
+<div id="createTaskModal" class="modal" tabindex="-1">
+    <div class="modal-dialog">
+    <div class ="modal-content">
+        <div class="modal-header">
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <p>Create a new task </p><br>
+            <form>
+                <label for="name">Task name:</label><br>
+                <input v-model="name" type="text" id="name" name="name"><br>
+                <label for="description">Description:</label><br>
+                <input v-model="description" type="text" id="description" name="description"><br>
+                <label for="dueDate">Due date:</label><br>
+                <input v-model="dueDate" type="date" id="dueDate" name="dueDate"><br>
+            </form>
+</div>
+<div class="modal-footer">
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+    <button type="button" @click="createTask()" class="btn btn-primary">Create</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+
 <script src="https://unpkg.com/vue@3.2.31/dist/vue.global.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.min.js"
         integrity="sha384-QJHtvGhmr9XOIpI6YVutG+2QOK9T+ZnN4kzFN1RtK3zEFEIsxhlmWl5/YESvpZ13"
@@ -120,6 +175,7 @@
                 this.getTasks();
             }
         },
+
 
         methods: {
 
@@ -198,13 +254,51 @@
 
                 }
             },
+            showCreateTaskModal: function () {
+                this.modalHandler = new bootstrap.Modal(document.getElementById('createTaskModal'), {})
+                this.modalHandler.show()
+            },
+           
+            // method to create task
+            createTask: async function () {
+  let response = await this.send('POST', `/tasks`, {
+    name: this.name,
+    description: this.description,
+    dueDate: this.dueDate
+  });
+  if (response.ok) {
+    await this.getTasks(); // wait for the tasks to be updated
+    this.modalHandler.hide();
+
+    // Add the new task to the tasks array
+    let newTask = await response.json();
+    this.tasks.push(newTask);
+  }
+},
+
+            // method to get tasks
+
             getTasks: async function () {
-                let response = await this.send('GET', `/tasks`);
-                if (response.ok) {
-                    this.tasks = response.body;
+                let response2 = await this.send('GET', `/tasks`);
+                if (response2.ok) {
+                    this.tasks = response2.body;
                 }
-            }
-        }
+            },
+            // method to complete task
+            completeTask: async function (id) {
+                let response = await this.send('PATCH', `/tasks/${id}`, {
+                    completed: true
+                });
+                if (response.ok) {
+                    this.getTasks();
+                }
+            },
+
+            
+
+        },
+
+
     }).mount('#app')
 </script>
 </body>

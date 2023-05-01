@@ -42,6 +42,7 @@ let tasks = [
         completed: false
     },
 ];
+
 app.post('/sessions', (req, res) => {
     if (!req.body.username || !req.body.password) {
         return res.status(400).send({error: 'One or all params are missing'})
@@ -82,6 +83,44 @@ app.use(function (err, req, res, next) {
     const status = err.status || 500;
     res.status(status).send({error: err.message});
 });
+
+//patch task endpoint
+app.patch('/tasks/:id', requireAuth, (req, res) => {
+    const taskId = parseInt(req.params.id);
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task) {
+        return res.status(404).send({error: 'Task not found'});
+    }
+
+    if (task.userId !== req.user.id) {
+        return res.status(403).send({error: 'Unauthorized: you can only update your own tasks'});
+    }
+
+    const allowedFields = ['name', 'dueDate', 'description', 'completed'];
+    const editedFields = Object.keys(req.body);
+    const isValidOperation = editedFields.every((field) => allowedFields.includes(field));
+
+    if (!isValidOperation) {
+        return res.status(400).send({error: 'Invalid field(s)'});
+    }
+
+    try {
+        editedFields.forEach((field) => task[field] = req.body[field]);
+        res.status(200).send(task);
+    } catch (error) {
+        res.status(500).send({error: 'Failed to update task'});
+    } 
+});
+
+//create task endpoint
+app.post('/tasks', requireAuth, (req, res) => {
+    const allowedFields = ['name', 'dueDate', 'description', 'completed'];
+    const fields = Object.keys(req.body);
+    const isValidOperation = fields.every((field) => allowedFields.includes(field));
+});
+
+
+
 
 function requireAuth(req, res, next) {
 
