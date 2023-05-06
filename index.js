@@ -80,6 +80,20 @@ app.post('/tasks', requireAuth, (req, res) => {
     )
 })
 
+//Endpoint for deleting a task
+app.delete('/tasks/:id', requireAuth, (req, res) => {
+    const task = tasks.find((task) => task.id === parseInt(req.params.id));
+    if (!task) {
+        return res.status(404).send({error: 'Task not found'})
+    }
+    if (task.userId !== req.user.id) {
+        return res.status(403).send({error: 'Forbidden'})
+    }
+    tasks = tasks.filter((task) => task.id !== parseInt(req.params.id));
+    res.status(204).end()
+})
+
+
 
 function requireAuth(req, res, next) {
 
