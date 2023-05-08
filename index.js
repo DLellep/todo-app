@@ -13,14 +13,11 @@ let sessions = [
     {sessionToken: '123', userId: 1}
 ];
 const users = [
-    {username: 'admin', password: 'password', isAdmin: true, id: 1},
-    {username: 'user', password: 'password', isAdmin: false, id: 2}
+    {username: 'admin', password: 'p', isAdmin: true, id: 1},
+    {username: 'user', password: 'p', isAdmin: false, id: 2}
 ];
-let tasks = [
-    {id: 1, name: 'Task 1', dueDate: '2021-02-12 11:22:33' ,description: 'Description for task 1', userId: 1},
-    {id: 2, name: 'Task 2', dueDate: '2022-03-44 22:11:22', description: 'Description for task 2', userId: 2},
-    {id: 2, name: 'Task 3', dueDate: '2022-03-44 22:11:22', description: 'Description for task 3', userId: 1},
-];
+let tasks = [];
+
 app.post('/sessions', (req, res) => {
     if (!req.body.username || !req.body.password) {
         return res.status(400).send({error: 'One or all params are missing'})
@@ -91,6 +88,24 @@ app.delete('/tasks/:id', requireAuth, (req, res) => {
     }
     tasks = tasks.filter((task) => task.id !== parseInt(req.params.id));
     res.status(204).end()
+})
+
+//endpoint to edit a task
+app.put('/tasks/:id', requireAuth, (req, res) => {
+    const task = tasks.find((task) => task.id === parseInt(req.params.id));
+    if (!task) {
+        return res.status(404).send({error: 'Task not found'})
+    }
+    if (task.userId !== req.user.id) {
+        return res.status(403).send({error: 'Forbidden'})
+    }
+    if (!req.body.name || !req.body.dueDate || !req.body.description) {
+        return res.status(400).send({error: 'One or all params are missing'})
+    }
+    task.name = req.body.name;
+    task.dueDate = req.body.dueDate;
+    task.description = req.body.description;
+    res.status(200).send(task)
 })
 
 
