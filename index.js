@@ -45,7 +45,6 @@ app.get('/tasks', requireAuth, (req, res) => {
     res.send(tasks.filter((task) => task.userId === req.user.id))
 })
 
-
 app.delete('/sessions', requireAuth, (req, res) => {
     sessions = sessions.filter((session) => session.sessionToken === req.sessionToken);
     res.status(204).end()
@@ -76,6 +75,25 @@ app.post('/tasks', requireAuth, (req, res) => {
         newTask
     )
 })
+//Endpoint for editing a task
+app.put('/tasks/:id', requireAuth, (req, res) => {
+    if (!req.body.name || !req.body.dueDate || !req.body.description) {
+        return res.status(400).send({error: 'One or all params are missing'})
+    }
+    const task = tasks.find((task) => task.id === parseInt(req.params.id));
+    if (!task) {
+        return res.status(404).send({error: 'Task not found'})
+    }
+    if (task.userId !== req.user.id) {
+        return res.status(403).send({error: 'Forbidden'})
+    }
+    task.name = req.body.name;
+    task.dueDate = req.body.dueDate;
+    task.description = req.body.description;
+    res.status(200).send(
+        task
+    )
+})
 
 //Endpoint for deleting a task
 app.delete('/tasks/:id', requireAuth, (req, res) => {
@@ -89,26 +107,6 @@ app.delete('/tasks/:id', requireAuth, (req, res) => {
     tasks = tasks.filter((task) => task.id !== parseInt(req.params.id));
     res.status(204).end()
 })
-
-//endpoint to edit a task
-app.put('/tasks/:id', requireAuth, (req, res) => {
-    const task = tasks.find((task) => task.id === parseInt(req.params.id));
-    if (!task) {
-        return res.status(404).send({error: 'Task not found'})
-    }
-    if (task.userId !== req.user.id) {
-        return res.status(403).send({error: 'Forbidden'})
-    }
-    if (!req.body.name || !req.body.dueDate || !req.body.description) {
-        return res.status(400).send({error: 'One or all params are missing'})
-    }
-    task.name = req.body.name;
-    task.dueDate = req.body.dueDate;
-    task.description = req.body.description;
-    res.status(200).send(task)
-})
-
-
 
 function requireAuth(req, res, next) {
 
