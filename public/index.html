@@ -48,6 +48,7 @@
 </head>
 
 <body>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <div id="app">
         <div class="container">
             <div class="row gy-5">
@@ -61,8 +62,12 @@
                         <button type="button" class="btn btn-success" @click="showSignInModal()" v-show="!sessionToken">
                             SignIn
                         </button>
+                        <div id="signInDiv" v-show="!sessionToken"
+                        style="display: flex; justify-content: center; align-items: center; text-align: center; margin-top:5px;">
+                    </div>
                         <button type="button" class="btn btn-danger" @click="logout()"
                             v-if="sessionToken">Logout</button>
+
                         <div class="createTaskButton">
                             <button type="button" class="btn btn-primary" @click="showCreateTaskModal()"
                                 v-if="sessionToken">
@@ -130,7 +135,8 @@
                             <label for="createName">Task name:</label><br>
                             <input v-model="createName" type="text" id="createName" name="name"><br>
                             <label for="createDescription">Description:</label><br>
-                            <input v-model="createDescription" type="text" id="createDescription" name="description"><br>
+                            <input v-model="createDescription" type="text" id="createDescription"
+                                name="description"><br>
                             <label for="createDueDate">Due date:</label><br>
                             <input v-model="createDueDate" type="date" id="createDueDate" name="dueDate"><br>
                         </form>
@@ -164,7 +170,8 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <button type="button" @click="editTask(activeTaskID)" class="btn btn-success">Confirm edit</button>
+                        <button type="button" @click="editTask(activeTaskID)" class="btn btn-success">Confirm
+                            edit</button>
                     </div>
                 </div>
             </div>
@@ -176,6 +183,43 @@
         integrity="sha384-QJHtvGhmr9XOIpI6YVutG+2QOK9T+ZnN4kzFN1RtK3zEFEIsxhlmWl5/YESvpZ13"
         crossorigin="anonymous"></script>
     <script>
+
+window.onload = function () {
+        google.accounts.id.initialize({
+            client_id: '804118527347-jogucm1dolsnmboh5s7n0ih4vhq3ls8s.apps.googleusercontent.com',
+            callback: handleCredentialResponse
+        });
+        // Google prompt
+        // google.accounts.id.prompt();
+
+        google.accounts.id.renderButton(
+            document.getElementById('signInDiv'),
+            {
+                theme: 'filled_blue',
+                size: 'large',
+                text: 'long',
+                type: 'standard'
+            }
+        )
+    };
+    function handleCredentialResponse(response) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', 'https://localhost:4000/Oauth2Login');
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.onload = function () {
+            // check if the response is valid
+            if (xhr.status === 201) {
+                let sessionToken = JSON.parse(xhr.response).sessionToken
+                // parse the response and extract the sessionToken and save it in a cookie
+                localStorage.setItem("sessionToken", sessionToken);
+                vue.sessionToken = sessionToken;
+            } else {
+                console.log('Request failed.  Returned status of ' + xhr.status + " " + xhr.statusText + " " + xhr.responseText);
+            }
+        };
+        xhr.send(JSON.stringify(response));
+    }
+
         function tryToParseJSON(jsonString) {
             try {
                 let o = JSON.parse(jsonString);
@@ -207,7 +251,7 @@
                     activeTaskID: 0,
                     description: null,
                     sessionToken: null,
-                    taskID: null
+                    taskID: null,
                 }
             },
             created: async function () {
