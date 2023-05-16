@@ -107,8 +107,8 @@
                         <div class="modal-body">
                             <p>Please fill out the signIn details: </p><br>
                             <form>
-                                <label for="username">Username:</label><br>
-                                <input v-model="username" type="text" id="username" name="username"><br>
+                                <label for="email">Email:</label><br>
+                                <input v-model="email" type="email" id="email" name="email"><br>
                                 <label for="password">Password:</label><br>
                                 <input v-model="password" type="password" id="password" name="password">
                             </form>
@@ -234,7 +234,7 @@ window.onload = function () {
         const vue = Vue.createApp({
             data() {
                 return {
-                    username: null,
+                    email: null,
                     password: null,
                     name: null,
                     description: null,
@@ -252,6 +252,7 @@ window.onload = function () {
                     description: null,
                     sessionToken: null,
                     taskID: null,
+                    isAdmin: false
                 }
             },
             created: async function () {
@@ -272,6 +273,7 @@ window.onload = function () {
                 clearStorageAndToggleLoginButtons: function () {
                     this.sessionToken = null;
                     this.tasks = null;
+                    this.isAdmin = null;
                     localStorage.removeItem("sessionToken");
                 },
                 logout: async function () {
@@ -332,11 +334,12 @@ window.onload = function () {
                 },
                 confirmSignIn: async function () {
                     let response = await this.send('POST', `/sessions`, {
-                        username: this.username,
+                        email: this.email,
                         password: this.password
                     });
                     if (response.ok) {
                         this.sessionToken = response.body.sessionToken;
+                        this.isAdmin = response.body.isAdmin;
                         localStorage.setItem("sessionToken", this.sessionToken);
                         this.modalHandler.hide()
 
