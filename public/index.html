@@ -63,8 +63,8 @@
                             SignIn
                         </button>
                         <div id="signInDiv" v-show="!sessionToken"
-                        style="display: flex; justify-content: center; align-items: center; text-align: center; margin-top:5px;">
-                    </div>
+                            style="display: flex; justify-content: center; align-items: center; text-align: center; margin-top:5px;">
+                        </div>
                         <button type="button" class="btn btn-danger" @click="logout()"
                             v-if="sessionToken">Logout</button>
 
@@ -184,41 +184,44 @@
         crossorigin="anonymous"></script>
     <script>
 
-window.onload = function () {
-        google.accounts.id.initialize({
-            client_id: '804118527347-jogucm1dolsnmboh5s7n0ih4vhq3ls8s.apps.googleusercontent.com',
-            callback: handleCredentialResponse
-        });
-        // Google prompt
-        // google.accounts.id.prompt();
+        window.onload = function () {
+            google.accounts.id.initialize({
+                client_id: '804118527347-jogucm1dolsnmboh5s7n0ih4vhq3ls8s.apps.googleusercontent.com',
+                callback: handleCredentialResponse
+            });
+            // Google prompt
+            // google.accounts.id.prompt();
 
-        google.accounts.id.renderButton(
-            document.getElementById('signInDiv'),
-            {
-                theme: 'filled_blue',
-                size: 'large',
-                text: 'long',
-                type: 'standard'
-            }
-        )
-    };
-    function handleCredentialResponse(response) {
-        var xhr = new XMLHttpRequest();
-        xhr.open('POST', 'https://localhost:4000/Oauth2Login');
-        xhr.setRequestHeader('Content-Type', 'application/json');
-        xhr.onload = function () {
-            // check if the response is valid
-            if (xhr.status === 201) {
-                let sessionToken = JSON.parse(xhr.response).sessionToken
-                // parse the response and extract the sessionToken and save it in a cookie
-                localStorage.setItem("sessionToken", sessionToken);
-                vue.sessionToken = sessionToken;
-            } else {
-                console.log('Request failed.  Returned status of ' + xhr.status + " " + xhr.statusText + " " + xhr.responseText);
-            }
+            google.accounts.id.renderButton(
+                document.getElementById('signInDiv'),
+                {
+                    theme: 'filled_blue',
+                    size: 'large',
+                    text: 'long',
+                    type: 'standard'
+                }
+            )
         };
-        xhr.send(JSON.stringify(response));
-    }
+        function handleCredentialResponse(response) {
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', 'https://localhost:4000/Oauth2Login');
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.onload = function () {
+                // check if the response is valid
+                if (xhr.status === 201) {
+                    // parse the response
+                    let response = tryToParseJSON(xhr.responseText);
+                    let sessionToken = response.sessionToken;
+                    // parse the response and extract the sessionToken and save it in a cookie
+                    localStorage.setItem("sessionToken", sessionToken);
+                    vue.sessionToken = sessionToken;
+                    vue.isAdmin = response.isAdmin;
+                } else {
+                    console.log('Request failed.  Returned status of ' + xhr.status + " " + xhr.statusText + " " + xhr.responseText);
+                }
+            };
+            xhr.send(JSON.stringify(response));
+        }
 
         function tryToParseJSON(jsonString) {
             try {
