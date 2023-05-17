@@ -36,10 +36,10 @@ app.post('/Oauth2Login', async (req, res) => {
         
         const dataFromGoogleJwt = await getDataFromGoogleJWT(req.body.credential)
         
-        let user = users.findBy('email', dataFromGoogleJwt.email);
+        let user = users.findBy('sub', dataFromGoogleJwt.sub);
          if (!user) {
             user = createUser({
-                username: dataFromGoogleJwt.name
+                username: dataFromGoogleJwt.name, email: dataFromGoogleJwt.email, sub: dataFromGoogleJwt.sub
             })
         }
         const newSession = createSession(user.id)
@@ -48,8 +48,7 @@ app.post('/Oauth2Login', async (req, res) => {
         )
     } catch (err) {
         return res.status(400).send({error: 'Login unsuccessful'});
-    }
-    ;
+    };
 });
 
 
@@ -57,10 +56,12 @@ app.post('/Oauth2Login', async (req, res) => {
 let sessions = [
     {sessionToken: '123', userId: 1}
 ];
+
 const users = [
-    {username: 'admin', password: 'p', isAdmin: true, id: 1},
-    {username: 'user', password: 'p', isAdmin: false, id: 2}
+    {email: 'admin', password: 'p', isAdmin: true, id: 1, sub: '108033093276487236746'},
+    {email: 'user', password: 'p', isAdmin: false, id: 2}
 ];
+
 let tasks = [];
 
 // create user for Oauth2 google login
@@ -83,12 +84,15 @@ function createSession(userId) {
 
 //create a new user account and a new session for the user using Oauth2 google login
 app.post('/users', async (req, res) => {
-    if (!req.body.username || !req.body.password || !req.body.email) {
+    if (!req.body.password || !req.body.email) {
         return res.status(400).send({error: 'One or all params are missing'})
     }
-    let user = users.find((user) => user.username === req.body.username);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(req.body.email)) {
+        return res.status(400).send({error: 'Invalid email'})
+    }
+    let user = users.find((user) => user.email === req.body.email);
     if (user) {
-        return res.status(400).send({error: 'Username already exists'})
+        return res.status(400).send({error: 'Email already exists'})
     }
     user = createUser(req.body);
     const newSession = createSession(user.id);
@@ -99,12 +103,12 @@ app.post('/users', async (req, res) => {
 
 
 app.post('/sessions', (req, res) => {
-    if (!req.body.username || !req.body.password) {
+    if (!req.body.email || !req.body.password) {
         return res.status(400).send({error: 'One or all params are missing'})
     }
-    const user = users.find((user) => user.username === req.body.username && user.password === req.body.password);
+    const user = users.find((user) => user.email === req.body.email && user.password === req.body.password);
     if (!user) {
-        return res.status(401).send({error: 'Unauthorized: username or password is incorrect'})
+        return res.status(401).send({error: 'Unauthorized: email or password is incorrect'})
     }
     //generate 32 character random string
     const sessionToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
@@ -120,13 +124,15 @@ app.post('/sessions', (req, res) => {
     )
 })
 
+
+
 // Endpoint for getting all tasks
 app.get('/tasks', requireAuth, (req, res) => {
     res.send(tasks.filter((task) => task.userId === req.user.id))
 })
 
 app.delete('/sessions', requireAuth, (req, res) => {
-    sessions = sessions.filter((session) => session.sessionToken === req.sessionToken);
+    sessions = sessions.filter((session) => session.sessionToken !== req.sessionToken);
     res.status(204).end()
 })
 let httpsServer = https.createServer({
