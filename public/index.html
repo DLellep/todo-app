@@ -67,7 +67,6 @@
                         </div>
                         <button type="button" class="btn btn-danger" @click="logout()"
                             v-if="sessionToken">Logout</button>
-
                         <div class="createTaskButton">
                             <button type="button" class="btn btn-primary" @click="showCreateTaskModal()"
                                 v-if="sessionToken">
@@ -209,13 +208,19 @@
             xhr.onload = function () {
                 // check if the response is valid
                 if (xhr.status === 201) {
-                    // parse the response
-                    let response = tryToParseJSON(xhr.responseText);
-                    let sessionToken = response.sessionToken;
+                    let response = tryToParseJSON(xhr.response);
+                    let sessionToken = JSON.parse(xhr.response).sessionToken
                     // parse the response and extract the sessionToken and save it in a cookie
                     localStorage.setItem("sessionToken", sessionToken);
                     vue.sessionToken = sessionToken;
-                    vue.isAdmin = response.isAdmin;
+
+                    //set admin 
+                    let admin = JSON.parse(xhr.response).isAdmin
+                    localStorage.setItem("isAdmin", admin);
+                    vue.isAdmin = admin;
+
+
+
                 } else {
                     console.log('Request failed.  Returned status of ' + xhr.status + " " + xhr.statusText + " " + xhr.responseText);
                 }
@@ -260,14 +265,7 @@
             },
             created: async function () {
                 this.sessionToken = localStorage.getItem("sessionToken");
-                if (!this.sessionToken) {
-                    const that = this;
-                    document.addEventListener("DOMContentLoaded", function () {
-                        that.showSignInModal()
-                    });
-                } else {
-                    this.getTasks();
-                }
+                this.isAdmin = localStorage.getItem("isAdmin");
             },
 
 
