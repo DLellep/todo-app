@@ -44,7 +44,7 @@ app.post('/Oauth2Login', async (req, res) => {
         }
         const newSession = createSession(user.id)
         return res.status(201).send(
-            {sessionToken: newSession.sessionToken}
+            {sessionToken: newSession.sessionToken, isAdmin: user.isAdmin}
         )
     } catch (err) {
         return res.status(400).send({error: 'Login unsuccessful'});
@@ -120,7 +120,7 @@ app.post('/sessions', (req, res) => {
     }
     sessions.push(newSession)
     res.status(201).send(
-        {sessionToken: sessionToken}
+        {sessionToken: sessionToken, isAdmin: user.isAdmin}
     )
 })
 
