@@ -370,9 +370,12 @@
                 //show edit task modal
                 showEditTaskModal: function (taskID) {
                     this.activeTaskID = taskID;
-                    this.taskInModal = this.tasks.find(task => task.id === taskID);
-                    this.modalHandler = new bootstrap.Modal(document.getElementById('editTaskModal'), {})
-                    this.modalHandler.show()
+                    const task = this.tasks.find(task => task.id === taskID);
+                    this.editName = task.name;
+                    this.editDescription = task.description;
+                    this.editDueDate = task.dueDate;
+                    this.modalHandler = new bootstrap.Modal(document.getElementById('editTaskModal'), {});
+                    this.modalHandler.show();
                 },
 
                 //method to edit a task
