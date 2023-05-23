@@ -239,6 +239,53 @@ paths:
             operationId: deletetask
             summary: Delete A Task
             description: Deletes a `task` entity.
+    /logs:
+        get:
+            tags:
+                - /logs
+            responses:
+                '200':
+                    description: Successful response - returns a list of `log` entities.
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/error'
+                            examples:
+                                This action requires signing in as an admin:
+                                    value:
+                                        error: This action requires signing in as an admin
+                    description: Forbidden
+            operationId: getlogs
+            summary: List All logs
+            description: Gets a list of all `log` entities.
+    /users:
+        post:
+            requestBody: {}
+            tags:
+                - /users
+            responses:
+                '201':
+                    description: "\t\r\nUser created - returns a `sessionToken` for the user."
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/error'
+                            examples:
+                                Invalid email:
+                                    value:
+                                        error: Invalid email
+                                Email already exists:
+                                    value:
+                                        error: Email already exists
+                                One or all params are missing:
+                                    value:
+                                        error: One or all params are missing
+                    description: "Bad request\r\n\r\n"
+            operationId: createuser
+            summary: Creates a user.
+            description: "Creates a user.\r\n\r\n"
 components:
     schemas:
         session:
@@ -289,6 +336,28 @@ components:
                 description: Description for task 1
                 userId: 1
                 completed: true
+        log:
+            description: Root type for log
+            properties:
+                userId:
+                    description: ''
+                    type: string
+                timeStamp:
+                    format: date-time
+                    description: ''
+                    type: string
+                eventName:
+                    description: ''
+                    type: string
+                extraData:
+                    description: ''
+                    type: string
+            example:
+                -
+                    userId: '1'
+                    timeStamp: '2022-11-29 10:16:07'
+                    eventName: oAuth2Login
+                    extraData: 'Foo Bar (foo.bar@voco.ee) logged in with Google OAuth2 as user Admin '
     securitySchemes:
         Bearer:
             scheme: bearer
