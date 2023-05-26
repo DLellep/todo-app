@@ -195,19 +195,19 @@
                     <div class="modal-body">
                         <table class="table table-striped">
                             <thead>
-                            <tr>
-                                <th>User</th>
-                                <th>Time</th>
-                                <th>Event</th>
-                                <th>Data</th>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Time</th>
+                                    <th>Event</th>
+                                    <th>Data</th>
                             </thead>
                             <tbody>
-                            <tr v-for="log in logs">
-                                <td>{{ log.user }}</td>
-                                <td>{{ log.timeStamp }}</td>
-                                <td>{{ log.eventName }}</td>
-                                <td>{{ log.extraData }}</td>
-                            </tr>
+                                <tr v-for="log in logs">
+                                    <td>{{ log.user }}</td>
+                                    <td>{{ log.timeStamp }}</td>
+                                    <td>{{ log.eventName }}</td>
+                                    <td>{{ log.extraData }}</td>
+                                </tr>
                             </tbody>
                         </table>
 
@@ -410,6 +410,7 @@
                         description: this.createDescription,
                         dueDate: this.createDueDate
                     });
+
                     if (response.ok) {
                         this.getTasks();
                         this.modalHandler.hide()

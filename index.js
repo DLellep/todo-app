@@ -9,31 +9,30 @@ YAML = require('yamljs');
 const swaggerDocument = YAML.load('swagger.yml');
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 app.use(express.static(__dirname + '/public'));
-const {OAuth2Client} = require('google-auth-library');
+const { OAuth2Client } = require('google-auth-library');
 const googleOAuth2Client = new OAuth2Client('804118527347-jogucm1dolsnmboh5s7n0ih4vhq3ls8s.apps.googleusercontent.com');
 const readline = require("readline");
+let loggedInUser;
 
-
-//store user data
+//store user data 
 app.use(function (req, res, next) {
     let sessionToken = getsessionToken(req);
     if (sessionToken) {
         const sessionUser = sessions.find(session => session.sessionToken === parseInt(sessionToken));
         if (sessionUser) {
-            req.user = users.findById(sessionUser.userId);
-            req.sessionToken = sessionToken;
+            loggedInUser = users.findById(sessionUser.userId);
+            loggedInUser.sessionToken = loggedInUser.sessionToken;
         }
-    } else req.user = {};
+    } else loggedInUser = {};
     next();
 });
 
 function login(user, req) {
     const session = createSession(user.id);
-    req.user = user
-    req.sessionToken = session.sessionToken
+    loggedInUser = { ...user, sessionToken: session.sessionToken };
 }
 
-function log(eventName, extraData, user) {
+function log(eventName, extraData) {
     // Create timestamp
     const timeStamp = new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString().replace(/T/, ' ').replace(/\..+/, '');
     // Parse extraData and eventName to JSON and escape the delimiter with backslash
@@ -41,10 +40,11 @@ function log(eventName, extraData, user) {
     // trim only quotes from extraData
     extraData = extraData.replace(/^"(.*)"$/, '$1');
     // Write to file
-    fs.appendFile('./log.txt', user.id + '　' + timeStamp + '　' + eventName + '　' + extraData + ' \r\n', function (err) {
+    fs.appendFile('./log.txt', loggedInUser.id + '　' + timeStamp + '　' + eventName + '　' + extraData + ' \r\n', function (err) {
         if (err) throw err;
     });
 }
+
 
 function getsessionToken(req) {
     const authorization = req.headers.authorization;
@@ -82,7 +82,7 @@ app.post('/Oauth2Login', async (req, res) => {
     try {
 
         const dataFromGoogleJwt = await getDataFromGoogleJWT(req.body.credential)
-        console.log(dataFromGoogleJwt.sub)
+
         let user = users.findBy('sub', dataFromGoogleJwt.sub);
         if (!user) {
             user = createUser({
@@ -92,22 +92,22 @@ app.post('/Oauth2Login', async (req, res) => {
         login(user, req);
         log("Oauth2Login", `Google user ${dataFromGoogleJwt.name} (${dataFromGoogleJwt.email}) logged in as local user ${user.email}`, user);
         return res.status(201).send(
-            {sessionToken: req.sessionToken, isAdmin: user.isAdmin}
+            { sessionToken: loggedInUser.sessionToken, isAdmin: user.isAdmin }
         )
     } catch (err) {
-        return res.status(400).send({error: 'Login unsuccessful'});
-    }
-    ;
+        return res.status(400).send({ error: 'Login unsuccessful' });
+    };
 });
 
 
+
 let sessions = [
-    {sessionToken: '123', userId: 1}
+    { sessionToken: '123', userId: 1 }
 ];
 
 const users = [
-    {email: 'admin', password: 'p', isAdmin: true, id: 1, sub: '113394166733084315118'},
-    {email: 'user', password: 'p', isAdmin: false, id: 2}
+    { email: 'admin', password: 'p', isAdmin: true, id: 1, sub: '108033093276487236746' },
+    { email: 'user', password: 'p', isAdmin: false, id: 2 }
 ];
 
 let tasks = [];
@@ -135,30 +135,33 @@ function createSession(userId) {
 //create a new user account and a new session for the user using Oauth2 google login
 app.post('/users', async (req, res) => {
     if (!req.body.password || !req.body.email) {
-        return res.status(400).send({error: 'One or all params are missing'})
+        return res.status(400).send({ error: 'One or all params are missing' })
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(req.body.email)) {
-        return res.status(400).send({error: 'Invalid email'})
+        return res.status(400).send({ error: 'Invalid email' })
     }
     let user = users.find((user) => user.email === req.body.email);
     if (user) {
-        return res.status(400).send({error: 'Email already exists'})
+        return res.status(400).send({ error: 'Email already exists' })
     }
     user = createUser(req.body);
     const newSession = createSession(user.id);
     res.status(201).send(
-        {sessionToken: newSession.sessionToken}
+        { sessionToken: newSession.sessionToken }
     )
 })
 
 
+
+
+
 app.post('/sessions', (req, res) => {
     if (!req.body.email || !req.body.password) {
-        return res.status(400).send({error: 'One or all params are missing'})
+        return res.status(400).send({ error: 'One or all params are missing' })
     }
     const user = users.find((user) => user.email === req.body.email && user.password === req.body.password);
     if (!user) {
-        return res.status(401).send({error: 'Unauthorized: email or password is incorrect'})
+        return res.status(401).send({ error: 'Unauthorized: email or password is incorrect' })
     }
     //generate 32 character random string
     const sessionToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
@@ -170,16 +173,16 @@ app.post('/sessions', (req, res) => {
     }
     sessions.push(newSession)
     login(user, req);
-    log("login", `User ${user.email} logged in`, user);
+    log("login", `User ${user.email} logged in`);
     res.status(201).send(
-        {sessionToken: sessionToken, isAdmin: user.isAdmin}
+        { sessionToken: sessionToken, isAdmin: user.isAdmin }
     )
 })
 
 // Endpoint for getting all logs
 app.get('/logs', requireAuth, (req, res) => {
-    if (!req.user.isAdmin) {
-        return res.status(403).send({error: 'This action requires signing in as an admin'});
+    if (!loggedInUser.isAdmin) {
+        return res.status(403).send({ error: 'This action requires signing in as an admin' });
     }
 
     const lines = [];
@@ -195,10 +198,8 @@ app.get('/logs', requireAuth, (req, res) => {
         for (let i = 0; i < fields.length; i++) {
             fields[i] = fields[i].replace(/\\/g, '');
         }
-
         // Find user by id
         const user = users.findBy('id', parseInt(fields[0]))
-
 
         // Add the line to the lines array
         lines.push({
@@ -207,7 +208,6 @@ app.get('/logs', requireAuth, (req, res) => {
             eventName: fields[2],
             extraData: fields[3]
         });
-
     });
 
     lineReader.on('close', () => {
@@ -215,7 +215,6 @@ app.get('/logs', requireAuth, (req, res) => {
         lines.sort((a, b) => {
             return new Date(b.timeStamp) - new Date(a.timeStamp);
         });
-
         res.send(lines); // Return the lines array once all lines are processed
     });
 });
@@ -228,13 +227,13 @@ app.get('/tasks', requireAuth, (req, res) => {
 
 app.delete('/sessions', requireAuth, (req, res) => {
     sessions = sessions.filter((session) => session.sessionToken !== req.sessionToken);
-    log("logout", `User ${req.user.email} logged out` ,req.user);
+    log("logout", `User ${loggedInUser.email} logged out`);
     res.status(204).end()
 })
 let httpsServer = https.createServer({
-        key: fs.readFileSync("key.pem"),
-        cert: fs.readFileSync("cert.pem"),
-    },
+    key: fs.readFileSync("key.pem"),
+    cert: fs.readFileSync("cert.pem"),
+},
     app)
     .listen(process.env.PORT, () => {
         console.log(`App running at https://localhost:${process.env.PORT}. Documentation at https://localhost:${process.env.PORT}/docs`);
@@ -243,13 +242,13 @@ let httpsServer = https.createServer({
 app.use(function (err, req, res, next) {
     console.error(err.stack);
     const status = err.status || 500;
-    res.status(status).send({error: err.message});
+    res.status(status).send({ error: err.message });
 });
 
 //Endpoint for creating a new task
 app.post('/tasks', requireAuth, (req, res) => {
     if (!req.body.name || !req.body.dueDate || !req.body.description) {
-        return res.status(400).send({error: 'One or all params are missing'})
+        return res.status(400).send({ error: 'One or all params are missing' })
     }
     let newTask = {
         id: tasks.length + 1,
@@ -259,7 +258,7 @@ app.post('/tasks', requireAuth, (req, res) => {
         userId: req.user.id
     }
     tasks.push(newTask)
-    log("createTask", newTask, req.user);
+    log("createTask", newTask);
     res.status(201).send(
         newTask
     )
@@ -267,14 +266,14 @@ app.post('/tasks', requireAuth, (req, res) => {
 //Endpoint for editing a task
 app.put('/tasks/:id', requireAuth, (req, res) => {
     if (!req.body.name || !req.body.dueDate || !req.body.description) {
-        return res.status(400).send({error: 'One or all params are missing'})
+        return res.status(400).send({ error: 'One or all params are missing' })
     }
     const task = tasks.find((task) => task.id === parseInt(req.params.id));
     if (!task) {
-        return res.status(404).send({error: 'Task not found'})
+        return res.status(404).send({ error: 'Task not found' })
     }
     if (task.userId !== req.user.id) {
-        return res.status(403).send({error: 'Forbidden'})
+        return res.status(403).send({ error: 'Forbidden' })
     }
     let taskOriginal = JSON.parse(JSON.stringify(task));
 
@@ -296,8 +295,7 @@ app.put('/tasks/:id', requireAuth, (req, res) => {
         }
         return result;
     }
-
-    log("editTask", {id: task.id, diff: diff(taskOriginal, req.body)}, req.user);
+    log("editTask", { id: task.id, diff: diff(taskOriginal, req.body) });
 
 
     task.name = req.body.name;
@@ -313,24 +311,24 @@ app.put('/tasks/:id', requireAuth, (req, res) => {
 app.delete('/tasks/:id', requireAuth, (req, res) => {
     const task = tasks.find((task) => task.id === parseInt(req.params.id));
     if (!task) {
-        return res.status(404).send({error: 'Task not found'})
+        return res.status(404).send({ error: 'Task not found' })
     }
     if (task.userId !== req.user.id) {
-        return res.status(403).send({error: 'Forbidden'})
+        return res.status(403).send({ error: 'Forbidden' })
     }
     tasks = tasks.filter((task) => task.id !== parseInt(req.params.id));
-    log("deleteTask", `Task ${task.id} deleted`, req.user);
+    log("deleteTask", `Task ${task.id} deleted`, loggedInUser);
     res.status(204).end()
 })
 
 function requireAuth(req, res, next) {
 
     if (!req.headers.authorization) {
-        return res.status(401).send({error: 'Missing authorization header'})
+        return res.status(401).send({ error: 'Missing authorization header' })
     }
 
     if (!req.headers.authorization.startsWith('Bearer ')) {
-        return res.status(401).send({error: 'Authorization header must start with Bearer followed by a space and the session sessionToken'})
+        return res.status(401).send({ error: 'Authorization header must start with Bearer followed by a space and the session sessionToken' })
     }
 
     const sessionToken = req.headers.authorization.split(' ')[1];
@@ -338,13 +336,13 @@ function requireAuth(req, res, next) {
     console.log(sessions)
     const session = sessions.find((session) => session.sessionToken === (sessionToken));
     if (!session) {
-        return res.status(401).send({error: 'Invalid session'})
+        return res.status(401).send({ error: 'Invalid session' })
     }
 
     const user = users.find((user) => user.id === session.userId);
 
     if (!user) {
-        return res.status(401).send({error: 'Invalid user'})
+        return res.status(401).send({ error: 'Invalid user' })
     }
 
     req.user = user;
