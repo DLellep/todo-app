@@ -12,6 +12,52 @@ app.use(express.static(__dirname + '/public'));
 const { OAuth2Client } = require('google-auth-library');
 const googleOAuth2Client = new OAuth2Client('804118527347-jogucm1dolsnmboh5s7n0ih4vhq3ls8s.apps.googleusercontent.com');
 const readline = require("readline");
+let loggedInUser;
+
+//store user data 
+app.use(function (req, res, next) {
+    let sessionToken = getsessionToken(req);
+    if (sessionToken) {
+        const sessionUser = sessions.find(session => session.sessionToken === parseInt(sessionToken));
+        if (sessionUser) {
+            loggedInUser = users.findById(sessionUser.userId);
+            loggedInUser.sessionToken = loggedInUser.sessionToken;
+        }
+    } else loggedInUser = {};
+    next();
+});
+
+function login(user, req) {
+    const session = createSession(user.id);
+    loggedInUser = { ...user, sessionToken: session.sessionToken };
+}
+
+function log(eventName, extraData) {
+    // Create timestamp
+    const timeStamp = new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString().replace(/T/, ' ').replace(/\..+/, '');
+    // Parse extraData and eventName to JSON and escape the delimiter with backslash
+    extraData = JSON.stringify(extraData).replace(/　/g, '\\　');
+    // trim only quotes from extraData
+    extraData = extraData.replace(/^"(.*)"$/, '$1');
+    // Write to file
+    fs.appendFile('./log.txt', loggedInUser.id + '　' + timeStamp + '　' + eventName + '　' + extraData + ' \r\n', function (err) {
+        if (err) throw err;
+    });
+}
+
+function getsessionToken(req) {
+    const authorization = req.headers.authorization;
+    if (!authorization) return null;
+    const parts = authorization.split(' ');
+    if (parts.length !== 2) return null;
+    const scheme = parts[0];
+    const credentials = parts[1];
+    if (/^Bearer$/i.test(scheme)) {
+        return credentials;
+    }
+    return null;
+}
+
 Array.prototype.findById = function (id) {
     return this.findBy('id', id)
 }
@@ -42,9 +88,10 @@ app.post('/Oauth2Login', async (req, res) => {
                 username: dataFromGoogleJwt.name, email: dataFromGoogleJwt.email, sub: dataFromGoogleJwt.sub
             })
         }
-        const newSession = createSession(user.id)
+        login(user, req);
+        log("Oauth2Login", `${dataFromGoogleJwt.name} (${dataFromGoogleJwt.email}) logged in with Google OAuth2 as user ${user.email}`);
         return res.status(201).send(
-            { sessionToken: newSession.sessionToken, isAdmin: user.isAdmin }
+            { sessionToken: loggedInUser.sessionToken, isAdmin: user.isAdmin }
         )
     } catch (err) {
         return res.status(400).send({ error: 'Login unsuccessful' });
@@ -64,9 +111,7 @@ const users = [
 
 let tasks = [];
 
-let logs = [
-    { userId: 1, logTime: '22:11:22' }
-];
+let logs = [];
 
 // create user for Oauth2 google login
 function createUser(user) {
@@ -106,6 +151,9 @@ app.post('/users', async (req, res) => {
 })
 
 
+
+
+
 app.post('/sessions', (req, res) => {
     if (!req.body.email || !req.body.password) {
         return res.status(400).send({ error: 'One or all params are missing' })
@@ -123,6 +171,8 @@ app.post('/sessions', (req, res) => {
         userId: user.id
     }
     sessions.push(newSession)
+    login(user, req);
+    log("login", `User: ${user.email} logged in`);
     res.status(201).send(
         { sessionToken: sessionToken, isAdmin: user.isAdmin }
     )
@@ -130,11 +180,38 @@ app.post('/sessions', (req, res) => {
 
 // Endpoint for getting all logs
 app.get('/logs', requireAuth, (req, res) => {
-    if (!req.user.isAdmin) {
-        return res.status(403).send({ error: 'This action requires signing in as an admin' })
+    if (!loggedInUser.isAdmin) {
+        return res.status(403).send({ error: 'This action requires signing in as an admin' });
     }
-    res.send(logs.filter((log) => log.userId === req.user.id))
-})
+
+    const lines = [];
+    const lineReader = readline.createInterface({
+        input: fs.createReadStream('./log.txt'),
+        crlfDelay: Infinity
+    });
+
+    lineReader.on('line', (line) => {
+        const fields = line.split('　'); // Split the line using '　' delimiter
+
+        // Remove backslash from escaped '　'
+        for (let i = 0; i < fields.length; i++) {
+            fields[i] = fields[i].replace(/\\/g, '');
+        }
+
+        // Add the line to the lines array
+        lines.push({
+            userId: fields[0],
+            timeStamp: fields[1],
+            eventName: fields[2],
+            extraData: fields[3]
+        });
+    });
+
+    lineReader.on('close', () => {
+        res.send(lines); // Return the lines array once all lines are processed
+    });
+});
+
 
 // Endpoint for getting all tasks
 app.get('/tasks', requireAuth, (req, res) => {
@@ -143,6 +220,7 @@ app.get('/tasks', requireAuth, (req, res) => {
 
 app.delete('/sessions', requireAuth, (req, res) => {
     sessions = sessions.filter((session) => session.sessionToken !== req.sessionToken);
+    log("logout", `User: ${loggedInUser.email} logged out`);
     res.status(204).end()
 })
 let httpsServer = https.createServer({
@@ -173,6 +251,7 @@ app.post('/tasks', requireAuth, (req, res) => {
         userId: req.user.id
     }
     tasks.push(newTask)
+    log("createTask", newTask);
     res.status(201).send(
         newTask
     )
@@ -189,6 +268,29 @@ app.put('/tasks/:id', requireAuth, (req, res) => {
     if (task.userId !== req.user.id) {
         return res.status(403).send({ error: 'Forbidden' })
     }
+    let taskOriginal = JSON.parse(JSON.stringify(task));
+
+    function diff(obj1, obj2) {
+
+        // function get unique keys from timeOriginal and time
+        function getUniqueKeys(obj1, obj2) {
+            let keys = Object.keys(obj1).concat(Object.keys(obj2));
+            return keys.filter(function (item, pos) {
+                return keys.indexOf(item) === pos;
+            });
+        }
+
+        let result = {};
+        for (let k of getUniqueKeys(obj1, obj2)) {
+            if (obj1[k] !== obj2[k]) {
+                result[k] = obj2[k];
+            }
+        }
+        return result;
+    }
+    log("editTask", { id: task.id, diff: diff(taskOriginal, req.body) });
+
+
     task.name = req.body.name;
     task.dueDate = req.body.dueDate;
     task.description = req.body.description;
@@ -196,6 +298,7 @@ app.put('/tasks/:id', requireAuth, (req, res) => {
         task
     )
 })
+
 
 //Endpoint for deleting a task
 app.delete('/tasks/:id', requireAuth, (req, res) => {
@@ -207,6 +310,7 @@ app.delete('/tasks/:id', requireAuth, (req, res) => {
         return res.status(403).send({ error: 'Forbidden' })
     }
     tasks = tasks.filter((task) => task.id !== parseInt(req.params.id));
+    log("deleteTask", `Task: ${task.id} deleted`);
     res.status(204).end()
 })
 

@@ -67,7 +67,7 @@
                         </div>
                         <button type="button" class="btn btn-danger" @click="logout()"
                             v-if="sessionToken">Logout</button>
-                        <button type="button" class="btn btn-info" @click="getLogsAndShowModal"
+                        <button type="button" class="btn btn-info" @click="getLogs()"
                             v-if="sessionToken && isAdmin">View logs</button>
                         <div class="createTaskButton">
                             <button type="button" class="btn btn-primary" @click="showCreateTaskModal()"
@@ -191,7 +191,10 @@
                     <table class="table table-striped">
                         <thead>
                             <tr>
-                                <th>User id</th>
+                                <th>User</th>
+                                <th>Time</th>
+                                <th>Event</th>
+                                <th>Data</th>
                         </thead>
                         <tbody>
                             <tr v-for="log in logs">
@@ -406,35 +409,19 @@
                         this.modalHandler.hide()
                     }
                 },
-
-
-
-                showLogsModal: function () {
-                    this.modalHandler = new bootstrap.Modal(document.getElementById('logsModal'))
-                    this.modalHandler.show()
-                },
-
-
+                //method to get logs
                 getLogs: async function () {
                     try {
                         let response = await this.send('GET', '/logs');
                         if (response.ok) {
                             this.logs = response.body;
-                        } else {
-                            console.error('Failed to fetch logs');
+                            this.modalHandler = new bootstrap.Modal(document.getElementById('logsModal'), {})
+                            this.modalHandler.show()
                         }
                     } catch (error) {
-                        console.error('Error:', error);
+                        console.log(error);
                     }
                 },
-
-
-                // method to call showlogsmodal and getlogs
-                getLogsAndShowModal: async function () {
-                    await this.getLogs();
-                    this.showLogsModal();
-                },
-
 
 
                 //show edit task modal
