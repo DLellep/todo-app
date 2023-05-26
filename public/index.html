@@ -44,12 +44,18 @@
             justify-content: flex-end;
             margin-right: 35px;
         }
+
+        /* Fix text overflow in Logs modal */
+        .modal-xl {
+            min-width: 590px;
+        }
     </style>
 </head>
 
 <body>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <div id="app">
+
         <div class="container">
             <div class="row gy-5">
                 <div class="col">
@@ -67,7 +73,7 @@
                         </div>
                         <button type="button" class="btn btn-danger" @click="logout()"
                             v-if="sessionToken">Logout</button>
-                        <button type="button" class="btn btn-info" @click="getLogsAndShowModal"
+                        <button type="button" class="btn btn-info" @click="getLogs()"
                             v-if="sessionToken && isAdmin">View logs</button>
                         <div class="createTaskButton">
                             <button type="button" class="btn btn-primary" @click="showCreateTaskModal()"
@@ -123,6 +129,7 @@
                 </div>
             </div>
         </div>
+
         <!-- Create task modal pop up-->
         <div id="createTaskModal" class="modal" tabindex="-1">
             <div class="modal-dialog">
@@ -150,7 +157,6 @@
             </div>
         </div>
 
-
         <!-- Edit task modal pop up-->
         <div id="editTaskModal" class="modal" tabindex="-1">
             <div class="modal-dialog">
@@ -177,39 +183,42 @@
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Logs modal pop up -->
-    <div id="logsModal" class="modal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    </p>Logs</p>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <table class="table table-striped">
-                        <thead>
+        <!-- Logs modal pop up -->
+        <div id="logsModal" class="modal" tabindex="-1">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <p>Logs</p>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <table class="table table-striped">
+                            <thead>
                             <tr>
-                                <th>User id</th>
-                        </thead>
-                        <tbody>
+                                <th>User</th>
+                                <th>Time</th>
+                                <th>Event</th>
+                                <th>Data</th>
+                            </thead>
+                            <tbody>
                             <tr v-for="log in logs">
-                                <td>{{ log.userId }}</td>
-                                <td>{{ log.timestamp }}</td>
+                                <td>{{ log.user }}</td>
+                                <td>{{ log.timeStamp }}</td>
                                 <td>{{ log.eventName }}</td>
                                 <td>{{ log.extraData }}</td>
                             </tr>
-                        </tbody>
-                    </table>
+                            </tbody>
+                        </table>
 
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+
     </div>
 
 
@@ -251,7 +260,7 @@
                     localStorage.setItem("sessionToken", sessionToken);
                     vue.sessionToken = sessionToken;
 
-                    //set admin 
+                    //set admin
                     let admin = JSON.parse(xhr.response).isAdmin
                     localStorage.setItem("isAdmin", admin);
                     vue.isAdmin = admin;
@@ -406,35 +415,19 @@
                         this.modalHandler.hide()
                     }
                 },
-
-
-
-                showLogsModal: function () {
-                    this.modalHandler = new bootstrap.Modal(document.getElementById('logsModal'))
-                    this.modalHandler.show()
-                },
-
-
+                //method to get logs
                 getLogs: async function () {
                     try {
                         let response = await this.send('GET', '/logs');
                         if (response.ok) {
                             this.logs = response.body;
-                        } else {
-                            console.error('Failed to fetch logs');
+                            this.modalHandler = new bootstrap.Modal(document.getElementById('logsModal'), {})
+                            this.modalHandler.show()
                         }
                     } catch (error) {
-                        console.error('Error:', error);
+                        console.log(error);
                     }
                 },
-
-
-                // method to call showlogsmodal and getlogs
-                getLogsAndShowModal: async function () {
-                    await this.getLogs();
-                    this.showLogsModal();
-                },
-
 
 
                 //show edit task modal
