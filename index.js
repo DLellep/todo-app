@@ -205,9 +205,15 @@ app.get('/logs', requireAuth, (req, res) => {
             eventName: fields[2],
             extraData: fields[3]
         });
+
     });
 
     lineReader.on('close', () => {
+        // Sort lines by timestamp descending
+        lines.sort((a, b) => {
+            return new Date(b.timeStamp) - new Date(a.timeStamp);
+        });
+
         res.send(lines); // Return the lines array once all lines are processed
     });
 });
