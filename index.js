@@ -45,6 +45,7 @@ function log(eventName, extraData) {
     });
 }
 
+
 function getsessionToken(req) {
     const authorization = req.headers.authorization;
     if (!authorization) return null;
@@ -89,7 +90,7 @@ app.post('/Oauth2Login', async (req, res) => {
             })
         }
         login(user, req);
-        log("Oauth2Login", `${dataFromGoogleJwt.name} (${dataFromGoogleJwt.email}) logged in with Google OAuth2 as user ${user.email}`);
+        log("Oauth2Login", `Google user ${dataFromGoogleJwt.name} (${dataFromGoogleJwt.email}) logged in as local user ${user.email}`, user);
         return res.status(201).send(
             { sessionToken: loggedInUser.sessionToken, isAdmin: user.isAdmin }
         )
@@ -172,7 +173,7 @@ app.post('/sessions', (req, res) => {
     }
     sessions.push(newSession)
     login(user, req);
-    log("login", `User: ${user.email} logged in`);
+    log("login", `User ${user.email} logged in`);
     res.status(201).send(
         { sessionToken: sessionToken, isAdmin: user.isAdmin }
     )
@@ -197,10 +198,12 @@ app.get('/logs', requireAuth, (req, res) => {
         for (let i = 0; i < fields.length; i++) {
             fields[i] = fields[i].replace(/\\/g, '');
         }
+        // Find user by id
+        const user = users.findBy('id', parseInt(fields[0]))
 
         // Add the line to the lines array
         lines.push({
-            userId: fields[0],
+            user: `${user?.email} (${fields[0]})`,
             timeStamp: fields[1],
             eventName: fields[2],
             extraData: fields[3]
@@ -208,6 +211,10 @@ app.get('/logs', requireAuth, (req, res) => {
     });
 
     lineReader.on('close', () => {
+        // Sort lines by timestamp descending
+        lines.sort((a, b) => {
+            return new Date(b.timeStamp) - new Date(a.timeStamp);
+        });
         res.send(lines); // Return the lines array once all lines are processed
     });
 });
@@ -220,7 +227,7 @@ app.get('/tasks', requireAuth, (req, res) => {
 
 app.delete('/sessions', requireAuth, (req, res) => {
     sessions = sessions.filter((session) => session.sessionToken !== req.sessionToken);
-    log("logout", `User: ${loggedInUser.email} logged out`);
+    log("logout", `User ${loggedInUser.email} logged out`);
     res.status(204).end()
 })
 let httpsServer = https.createServer({
@@ -310,7 +317,7 @@ app.delete('/tasks/:id', requireAuth, (req, res) => {
         return res.status(403).send({ error: 'Forbidden' })
     }
     tasks = tasks.filter((task) => task.id !== parseInt(req.params.id));
-    log("deleteTask", `Task: ${task.id} deleted`);
+    log("deleteTask", `Task ${task.id} deleted`, loggedInUser);
     res.status(204).end()
 })
 
