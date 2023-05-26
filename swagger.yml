@@ -38,6 +38,9 @@ paths:
                                 Invalid JSON:
                                     value:
                                         error: Unexpected token in JSON at position 0
+                                One or all params are missing:
+                                    value:
+                                        error: One or all params are missing
                     description: Bad Request
                 '401':
                     content:
@@ -45,9 +48,9 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/error'
                             examples:
-                                'Unauthorized: username or password is incorrect':
+                                'Unauthorized: email or password is incorrect':
                                     value:
-                                        error: 'Unauthorized: username or password is incorrect'
+                                        error: 'Unauthorized: email or password is incorrect'
                     description: Unauthorized
             operationId: createsession
             summary: Create a session
@@ -131,45 +134,6 @@ paths:
             operationId: gettasks
             summary: List All tasks
             description: Gets a list of all `task` entities.
-        put:
-            tags:
-                - /tasks
-            responses:
-                '200':
-                    description: Successful response - `task` entity has been edited.
-                '400':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/error'
-                            examples:
-                                One or all params are missing:
-                                    value:
-                                        error: One or all params are missing
-                    description: Bad Request.
-                '403':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/error'
-                            examples:
-                                Forbidden:
-                                    value:
-                                        error: Forbidden
-                    description: Forbidden
-                '404':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/error'
-                            examples:
-                                Task not found:
-                                    value:
-                                        error: Task not found
-                    description: Not Found
-            operationId: edittask
-            summary: Edit A Task
-            description: Edits a `task` entity.
         post:
             requestBody:
                 content:
@@ -197,13 +161,86 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/error'
                             examples:
-                                'Unauthorized: username or password is incorrect':
+                                'Unauthorized: email or password is incorrect':
                                     value:
-                                        error: 'Unauthorized: username or password is incorrect.'
-                    description: 'Unauthorized: username or password is incorrect.'
+                                        error: 'Unauthorized: email or password is incorrect.'
+                    description: 'Unauthorized: email or password is incorrect.'
             operationId: createtask
             summary: Create A Task
             description: Creates a new `task` entity.
+    /tasks/id:
+        summary: Path used to manage the list of tasks.
+        description: >-
+            The REST endpoint/path used to list and create zero or more `task` entities.  This path contains a
+            `GET` and `POST` operation to perform the list and create tasks, respectively.
+        put:
+            requestBody: {}
+            tags:
+                - /tasks
+            responses:
+                '200':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/task'
+                            examples:
+                                Successful response:
+                                    value:
+                                        name: Updated Task Name
+                                        dueDate: '2023-06-30'
+                                        description: Updated task description
+                    description: Successful response - `task` entity has been edited.
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/error'
+                            examples:
+                                One or all params are missing:
+                                    value:
+                                        error: One or all params are missing
+                    description: Bad Request.
+                '401':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/error'
+                            examples:
+                                Invalid session:
+                                    value:
+                                        error: Invalid session
+                                'Missing authorization header ':
+                                    value:
+                                        error: Missing authorization header
+                                Authorization header must start with Bearer followed by a space and the session sessionToken:
+                                    value:
+                                        error: >-
+                                            Authorization header must start with Bearer followed by a space
+                                            and the session sessionToken
+                    description: Unauthorized
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/error'
+                            examples:
+                                Forbidden:
+                                    value:
+                                        error: Forbidden
+                    description: Forbidden
+                '404':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/error'
+                            examples:
+                                Task not found:
+                                    value:
+                                        error: Task not found
+                    description: Not Found
+            operationId: edittask
+            summary: Edit A Task
+            description: Edits a `task` entity.
         delete:
             tags:
                 - /tasks
@@ -225,17 +262,17 @@ paths:
                                         error: >-
                                             User ID of the task does not match the ID of the authenticated
                                             user
-                    description: Forbidden.
+                    description: Forbidden
                 '404':
                     content:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/error'
                             examples:
-                                Task not found.:
+                                Task not found:
                                     value:
                                         error: Task not found
-                    description: Task not found.
+                    description: Not Found
             operationId: deletetask
             summary: Delete A Task
             description: Deletes a `task` entity.
@@ -246,6 +283,16 @@ paths:
             responses:
                 '200':
                     description: Successful response - returns a list of `log` entities.
+                '401':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/error'
+                            examples:
+                                Missing authorization header:
+                                    value:
+                                        error: Missing authorization header
+                    description: Unauthorized
                 '403':
                     content:
                         application/json:
@@ -261,7 +308,18 @@ paths:
             description: Gets a list of all `log` entities.
     /users:
         post:
-            requestBody: {}
+            requestBody:
+                description: A new `user` to be created.
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/session'
+                        examples:
+                            Request body:
+                                value:
+                                    email: example@example.com
+                                    password: password
+                required: true
             tags:
                 - /users
             responses:
@@ -293,7 +351,7 @@ components:
             description: ''
             type: object
             properties:
-                username:
+                email:
                     type: string
                 password:
                     type: string
@@ -308,7 +366,7 @@ components:
                 error:
                     type: string
             example:
-                error: 'Unauthorized: username or password is incorrect'
+                error: 'Unauthorized: email or password is incorrect'
         task:
             title: Root Type for task
             description: ''
@@ -327,15 +385,12 @@ components:
                 userId:
                     format: int32
                     type: integer
-                completed:
-                    type: boolean
             example:
                 id: 1
                 name: Task 1
                 dueDate: '2021-02-12 11:22:33'
                 description: Description for task 1
                 userId: 1
-                completed: true
         log:
             description: Root type for log
             properties:
