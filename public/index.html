@@ -50,6 +50,7 @@
 <body>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <div id="app">
+
         <div class="container">
             <div class="row gy-5">
                 <div class="col">
@@ -123,6 +124,7 @@
                 </div>
             </div>
         </div>
+
         <!-- Create task modal pop up-->
         <div id="createTaskModal" class="modal" tabindex="-1">
             <div class="modal-dialog">
@@ -150,7 +152,6 @@
             </div>
         </div>
 
-
         <!-- Edit task modal pop up-->
         <div id="editTaskModal" class="modal" tabindex="-1">
             <div class="modal-dialog">
@@ -177,42 +178,42 @@
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Logs modal pop up -->
-    <div id="logsModal" class="modal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    </p>Logs</p>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <table class="table table-striped">
-                        <thead>
+        <!-- Logs modal pop up -->
+        <div id="logsModal" class="modal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <p>Logs</p>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <table class="table table-striped">
+                            <thead>
                             <tr>
                                 <th>User</th>
                                 <th>Time</th>
                                 <th>Event</th>
                                 <th>Data</th>
-                        </thead>
-                        <tbody>
+                            </thead>
+                            <tbody>
                             <tr v-for="log in logs">
                                 <td>{{ log.userId }}</td>
                                 <td>{{ log.timestamp }}</td>
                                 <td>{{ log.eventName }}</td>
                                 <td>{{ log.extraData }}</td>
                             </tr>
-                        </tbody>
-                    </table>
+                            </tbody>
+                        </table>
 
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+
     </div>
 
 
@@ -254,7 +255,7 @@
                     localStorage.setItem("sessionToken", sessionToken);
                     vue.sessionToken = sessionToken;
 
-                    //set admin 
+                    //set admin
                     let admin = JSON.parse(xhr.response).isAdmin
                     localStorage.setItem("isAdmin", admin);
                     vue.isAdmin = admin;

@@ -14,7 +14,7 @@ const googleOAuth2Client = new OAuth2Client('804118527347-jogucm1dolsnmboh5s7n0i
 const readline = require("readline");
 let loggedInUser;
 
-//store user data 
+//store user data
 app.use(function (req, res, next) {
     let sessionToken = getsessionToken(req);
     if (sessionToken) {
@@ -81,7 +81,7 @@ app.post('/Oauth2Login', async (req, res) => {
     try {
 
         const dataFromGoogleJwt = await getDataFromGoogleJWT(req.body.credential)
-
+        console.log(dataFromGoogleJwt.sub)
         let user = users.findBy('sub', dataFromGoogleJwt.sub);
         if (!user) {
             user = createUser({
@@ -105,7 +105,7 @@ let sessions = [
 ];
 
 const users = [
-    { email: 'admin', password: 'p', isAdmin: true, id: 1, sub: '108033093276487236746' },
+    { email: 'admin', password: 'p', isAdmin: true, id: 1, sub: '113394166733084315118' },
     { email: 'user', password: 'p', isAdmin: false, id: 2 }
 ];
 
