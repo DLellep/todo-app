@@ -196,9 +196,13 @@ app.get('/logs', requireAuth, (req, res) => {
             fields[i] = fields[i].replace(/\\/g, '');
         }
 
+        // Find user by id
+        const user = users.findBy('id', parseInt(fields[0]))
+
+
         // Add the line to the lines array
         lines.push({
-            userId: fields[0],
+            user: `${user?.email} (${fields[0]})`,
             timeStamp: fields[1],
             eventName: fields[2],
             extraData: fields[3]
@@ -315,7 +319,7 @@ app.delete('/tasks/:id', requireAuth, (req, res) => {
         return res.status(403).send({error: 'Forbidden'})
     }
     tasks = tasks.filter((task) => task.id !== parseInt(req.params.id));
-    log("deleteTask", `Task: ${task.id} deleted`, req.user);
+    log("deleteTask", `Task ${task.id} deleted`, req.user);
     res.status(204).end()
 })
 
