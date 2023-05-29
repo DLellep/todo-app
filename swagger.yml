@@ -106,6 +106,15 @@ paths:
                                 type: array
                                 items:
                                     $ref: '#/components/schemas/task'
+                            examples:
+                                tasks:
+                                    value:
+                                        -
+                                            id: 1
+                                            name: Task 1
+                                            dueDate: '2021-02-12 11:22:33'
+                                            description: Description for task 1
+                                            userId: 1
                     description: Successful response - returns an array of `task` entities.
                 '401':
                     content:
@@ -174,7 +183,20 @@ paths:
             The REST endpoint/path used to list and create zero or more `task` entities.  This path contains a
             `GET` and `POST` operation to perform the list and create tasks, respectively.
         put:
-            requestBody: {}
+            requestBody:
+                description: ''
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/task'
+                        examples:
+                            task:
+                                value:
+                                    id: 1
+                                    name: Task 1
+                                    dueDate: '2021-02-12 11:22:33'
+                                    description: Description for task 1
+                required: true
             tags:
                 - /tasks
             responses:
@@ -251,6 +273,16 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/task'
                     description: Successful response - deletes a `task` entity.
+                '401':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/error'
+                            examples:
+                                Missing authorization header:
+                                    value:
+                                        error: Missing authorization header
+                    description: Unauthorized
                 '403':
                     content:
                         application/json:
@@ -282,6 +314,20 @@ paths:
                 - /logs
             responses:
                 '200':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/log'
+                            examples:
+                                Log:
+                                    value:
+                                        -
+                                            userId: '1'
+                                            timeStamp: '2022-11-29 10:16:07'
+                                            eventName: oAuth2Login
+                                            extraData: >-
+                                                Foo Bar (foo.bar@voco.ee) logged in with Google OAuth2 as user
+                                                Admin 
                     description: Successful response - returns a list of `log` entities.
                 '401':
                     content:
